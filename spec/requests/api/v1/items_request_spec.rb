@@ -57,5 +57,34 @@ RSpec.describe "Items API" do
         expect(parsed_data[:data][:attributes][:merchant_id]).to eq(item1.merchant_id)
       end
     end
+
+    context "when NOT successful" do
+      it "returns an error message when incorrect ID number is sent" do
+        get "/api/v1/items/0"
+
+        parsed_data = JSON.parse(response.body, symbolize_names: true)
+
+        expect(response).to have_http_status(404)
+        expect(parsed_data[:message]).to eq("Couldn't find Item with 'id'=0")
+      end
+
+      it "returns an error message when incorrect ID number is sent" do
+        get "/api/v1/items/0"
+
+        parsed_data = JSON.parse(response.body, symbolize_names: true)
+
+        expect(response).to have_http_status(404)
+        expect(parsed_data[:message]).to eq("Couldn't find Item with 'id'=0")
+      end
+
+      it "returns an error message when non-integer is sent" do
+        get "/api/v1/items/ABC"
+
+        parsed_data = JSON.parse(response.body, symbolize_names: true)
+
+        expect(response).to have_http_status(404)
+        expect(parsed_data[:message]).to eq("Couldn't find Item with 'id'=ABC")
+      end
+    end
   end
 end
