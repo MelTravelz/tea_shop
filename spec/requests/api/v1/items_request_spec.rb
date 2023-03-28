@@ -110,12 +110,16 @@ RSpec.describe "Items API" do
 
       it "creates a new item" do
         expect(response).to be_successful
+        # expect(response).to have_http_status(201) # Is this needed?
         
         parsed_data = JSON.parse(response.body, symbolize_names: true)
 
         expect(parsed_data.size).to eq(1)
 
+        expect(parsed_data[:data].size).to eq(3)
         expect(parsed_data[:data].keys).to eq([:id, :type, :attributes])
+        
+        expect(parsed_data[:data][:attributes].size).to eq(4)
         expect(parsed_data[:data][:attributes].keys).to eq([:name, :description, :unit_price, :merchant_id])
 
 
@@ -232,4 +236,28 @@ RSpec.describe "Items API" do
     # // TODO: edge case where all attributes are missing
   end
 
+  describe "destroy" do
+    context "when successful" do
+      it "can destroy an item" do
+       # This is an alternative to the current test: 
+        # expect{ delete "/api/v1/items/#{item1.id}" }.to change(Item, :count).by(-1)
+
+        expect(Item.count).to eq(5)
+        
+        delete "/api/v1/items/#{item1.id}"
+
+        expect(response).to be_successful
+        expect(Item.count).to eq(4)
+
+        expect{ Item.find(item1.id) }.to raise_error(ActiveRecord::RecordNotFound)
+        expect{ Item.find(item1.id) }.to raise_error("Couldn't find Item with 'id'=#{item1.id}")
+
+        # Why does parsed_data return another item? and NOT an empty array? 
+        # parsed_data = JSON.parse(response.body, symbolize_names: true)
+
+        # expect(response).to have_http_status(404)
+        # expect(parsed_data[:message]).to eq("Couldn't find Item with 'id'=#{item1.id}")
+      end
+    end
+  end
 end
