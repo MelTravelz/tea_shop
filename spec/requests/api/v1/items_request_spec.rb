@@ -5,6 +5,7 @@ RSpec.describe "Items API" do
     create_list(:item, 5)
   end
   let(:item1) { Item.first }
+  let(:item_to_delete) { Item.second }
 
   describe "#index" do
     before do
@@ -90,7 +91,7 @@ RSpec.describe "Items API" do
 
   describe "#create"do
     before do
-      @bond = Merchant.create(name: "James Bond", id: 007)
+      @bond = Merchant.create(name: "James Bond", id: 700)
     end
 
     context "when successful" do
@@ -104,9 +105,11 @@ RSpec.describe "Items API" do
 
         headers = {"CONTENT_TYPE" => "application/json"}
         post "/api/v1/items", headers: headers, params: JSON.generate(item: item_params)
+
+        @new_item = Item.last
       end
 
-      let(:new_item) { Item.last }
+      # let(:new_item) { Item.last }
 
       it "creates a new item" do
         expect(response).to be_successful
@@ -118,18 +121,17 @@ RSpec.describe "Items API" do
 
         expect(parsed_data[:data].size).to eq(3)
         expect(parsed_data[:data].keys).to eq([:id, :type, :attributes])
-        
+
         expect(parsed_data[:data][:attributes].size).to eq(4)
         expect(parsed_data[:data][:attributes].keys).to eq([:name, :description, :unit_price, :merchant_id])
 
-
-        expect(parsed_data[:data][:id]).to eq(new_item.id.to_s)
+        expect(parsed_data[:data][:id]).to eq(@new_item.id.to_s)
         expect(parsed_data[:data][:type]).to eq('item')
 
-        expect(parsed_data[:data][:attributes][:name]).to eq(new_item.name)
-        expect(parsed_data[:data][:attributes][:description]).to eq(new_item.description)
-        expect(parsed_data[:data][:attributes][:unit_price]).to eq(new_item.unit_price)
-        expect(parsed_data[:data][:attributes][:merchant_id]).to eq(new_item.merchant_id)
+        expect(parsed_data[:data][:attributes][:name]).to eq(@new_item.name)
+        expect(parsed_data[:data][:attributes][:description]).to eq(@new_item.description)
+        expect(parsed_data[:data][:attributes][:unit_price]).to eq(@new_item.unit_price)
+        expect(parsed_data[:data][:attributes][:merchant_id]).to eq(@new_item.merchant_id)
       end
     end
 
@@ -171,6 +173,12 @@ RSpec.describe "Items API" do
           "description": "It's tea!",
           "unit_price": 100.99,
           "merchant_id": "ABC" # <- This should be a float/integer
+        })
+
+        @item_missing_attr = ({
+          "description": "It's tea!",
+          "unit_price": 100.99,
+          "merchant_id": @bond.id
         })
 
         @headers = {"CONTENT_TYPE" => "application/json"}
@@ -231,6 +239,15 @@ RSpec.describe "Items API" do
         parsed_data = JSON.parse(response.body, symbolize_names: true)
         # expect(parsed_data[:message]).to eq("??? whats the message ???")
       end
+
+      it "returns an error message when an attribute is missing" do
+        post "/api/v1/items", headers: @headers, params: JSON.generate(item: @item_missing_attr)
+        expect(response).to have_http_status(400)
+        # require 'pry'; binding.pry
+
+        parsed_data = JSON.parse(response.body, symbolize_names: true)
+        expect(parsed_data[:message]).to eq("Validation failed: Name can't be blank")
+      end
     end
     # // TODO: sad path where attribute types are not correct
     # // TODO: edge case where all attributes are missing
@@ -243,20 +260,23 @@ RSpec.describe "Items API" do
         # expect{ delete "/api/v1/items/#{item1.id}" }.to change(Item, :count).by(-1)
 
         expect(Item.count).to eq(5)
-        
-        delete "/api/v1/items/#{item1.id}"
+
+        delete "/api/v1/items/#{item_to_delete.id}"
 
         expect(response).to be_successful
         expect(Item.count).to eq(4)
+        expect{ Item.find(item_to_delete.id) }.to raise_error(ActiveRecord::RecordNotFound)
+        expect{ Item.find(item_to_delete.id) }.to raise_error("Couldn't find Item with 'id'=#{item_to_delete.id}")
+        
+        ########### Testing the deleted object: 
+        
+        parsed_data = JSON.parse(response.body, symbolize_names: true)
 
-        expect{ Item.find(item1.id) }.to raise_error(ActiveRecord::RecordNotFound)
-        expect{ Item.find(item1.id) }.to raise_error("Couldn't find Item with 'id'=#{item1.id}")
-
-        # Why does parsed_data return another item? and NOT an empty array? 
-        # parsed_data = JSON.parse(response.body, symbolize_names: true)
-
-        # expect(response).to have_http_status(404)
-        # expect(parsed_data[:message]).to eq("Couldn't find Item with 'id'=#{item1.id}")
+        expect(parsed_data[:id]).to eq(item_to_delete.id)
+        expect(parsed_data[:name]).to eq(item_to_delete.name)
+        expect(parsed_data[:description]).to eq(item_to_delete.description)
+        expect(parsed_data[:unit_price]).to eq(item_to_delete.unit_price)
+        expect(parsed_data[:merchant_id]).to eq(item_to_delete.merchant_id)
       end
     end
   end

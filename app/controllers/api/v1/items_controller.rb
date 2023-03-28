@@ -8,7 +8,7 @@ class Api::V1::ItemsController < ApplicationController
   end
 
   def create
-    render json: ItemSerializer.new(Item.create(item_params)), status: 201
+    render json: ItemSerializer.new(Item.create!(item_params)), status: 201
   end
 
   def destroy
