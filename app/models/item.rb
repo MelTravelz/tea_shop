@@ -1,9 +1,7 @@
 class Item < ApplicationRecord
-  validates_presence_of :name 
-  validates_presence_of :description
-  validates_presence_of :unit_price
-  validates_numericality_of :unit_price
-  validates_presence_of :merchant_id
+  validates :name, presence: true #, length: { maximum: 20 }
+  # validates :description, presence: true  <- NOT ABSOLUTELY NECESSARY
+  validates :unit_price, presence: true, numericality: true
   
   belongs_to :merchant
 end
