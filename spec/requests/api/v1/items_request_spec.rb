@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe "Items API" do
-  let(:first_item) { Item.first }
+  let(:item1) { Item.first }
 
   before do
     create_list(:item, 5)
@@ -23,10 +23,10 @@ RSpec.describe "Items API" do
         expect(parsed_data[:data][0].keys).to eq([:id, :type, :attributes])
 
         expect(parsed_data[:data][0][:attributes].keys).to eq([:name, :description, :unit_price, :merchant_id])
-        expect(parsed_data[:data][0][:attributes][:name]).to eq(first_item.name)
-        expect(parsed_data[:data][0][:attributes][:description]).to eq(first_item.description)
-        expect(parsed_data[:data][0][:attributes][:unit_price]).to eq(first_item.unit_price)
-        expect(parsed_data[:data][0][:attributes][:unit_price]).to be_a(Float)
+        expect(parsed_data[:data][0][:attributes][:name]).to eq(item1.name)
+        expect(parsed_data[:data][0][:attributes][:description]).to eq(item1.description)
+        expect(parsed_data[:data][0][:attributes][:unit_price]).to eq(item1.unit_price)
+        expect(parsed_data[:data][0][:attributes][:unit_price]).to be_a(Float) # need to test?? special note in instructions for this datatype
       end
     end
   end
@@ -34,7 +34,7 @@ RSpec.describe "Items API" do
   describe "#show" do
     context "when successful" do
       before do
-        get "/api/v1/items/#{first_item.id}"
+        get "/api/v1/items/#{item1.id}"
       end
 
       it "returns one item" do
@@ -48,13 +48,13 @@ RSpec.describe "Items API" do
         expect(parsed_data[:data][:attributes].keys).to eq([:name, :description, :unit_price, :merchant_id])
 
 
-        expect(parsed_data[:data][:id]).to eq(first_item.id.to_s)
+        expect(parsed_data[:data][:id]).to eq(item1.id.to_s)
         expect(parsed_data[:data][:type]).to eq('item')
 
-        expect(parsed_data[:data][:attributes][:name]).to eq(first_item.name)
-        expect(parsed_data[:data][:attributes][:description]).to eq(first_item.description)
-        expect(parsed_data[:data][:attributes][:unit_price]).to eq(first_item.unit_price)
-        expect(parsed_data[:data][:attributes][:merchant_id]).to eq(first_item.merchant_id)
+        expect(parsed_data[:data][:attributes][:name]).to eq(item1.name)
+        expect(parsed_data[:data][:attributes][:description]).to eq(item1.description)
+        expect(parsed_data[:data][:attributes][:unit_price]).to eq(item1.unit_price)
+        expect(parsed_data[:data][:attributes][:merchant_id]).to eq(item1.merchant_id)
       end
     end
   end

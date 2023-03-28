@@ -1,6 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe "Merchants API" do
+  let(:merchant1) { Merchant.first }
   before do
     create_list(:merchant, 4)
   end
@@ -19,7 +20,7 @@ RSpec.describe "Merchants API" do
         expect(parsed_data[:data].size).to eq(4)
         expect(parsed_data[:data]).to be_an(Array)
         expect(parsed_data[:data][0].keys).to eq([:id, :type, :attributes])
-        expect(parsed_data[:data][0][:attributes][:name]).to eq(Merchant.first.name)
+        expect(parsed_data[:data][0][:attributes][:name]).to eq(merchant1.name)
       end
     end
   end
@@ -27,7 +28,7 @@ RSpec.describe "Merchants API" do
   describe "#show" do
     context "when successful" do
       before do
-        get "/api/v1/merchants/#{Merchant.first.id}"
+        get "/api/v1/merchants/#{merchant1.id}"
       end
 
       it "returns one merchant" do
@@ -41,9 +42,9 @@ RSpec.describe "Merchants API" do
 
         expect(parsed_data[:data][:attributes].size).to eq(1)
 
-        expect(parsed_data[:data][:id]).to eq(Merchant.first.id.to_s)
+        expect(parsed_data[:data][:id]).to eq(merchant1.id.to_s)
         expect(parsed_data[:data][:type]).to eq('merchant')
-        expect(parsed_data[:data][:attributes][:name]).to eq(Merchant.first.name)
+        expect(parsed_data[:data][:attributes][:name]).to eq(merchant1.name)
       end
     end
 
