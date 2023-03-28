@@ -49,11 +49,18 @@ RSpec.describe "Merchants API" do
     end
 
     context "when NOT successful" do
-      before do
-        get "/api/v1/merchants/ABC"
+      it "returns an error message when incorrect ID number is sent" do
+        get "/api/v1/merchants/0"
+
+        parsed_data = JSON.parse(response.body, symbolize_names: true)
+
+        expect(response).to have_http_status(404)
+        expect(parsed_data[:message]).to eq("Couldn't find Merchant with 'id'=0")
       end
 
-      it "returns an error message" do
+      it "returns an error message when non-integer is sent" do
+        get "/api/v1/merchants/ABC"
+
         parsed_data = JSON.parse(response.body, symbolize_names: true)
 
         expect(response).to have_http_status(404)
