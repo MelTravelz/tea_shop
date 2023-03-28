@@ -1,11 +1,10 @@
 require 'rails_helper'
 
 RSpec.describe "Items API" do
-  let(:item1) { Item.first }
-
   before do
     create_list(:item, 5)
   end
+  let(:item1) { Item.first }
 
   describe "#index" do
     before do
@@ -27,6 +26,7 @@ RSpec.describe "Items API" do
         expect(parsed_data[:data][0][:attributes][:description]).to eq(item1.description)
         expect(parsed_data[:data][0][:attributes][:unit_price]).to eq(item1.unit_price)
         expect(parsed_data[:data][0][:attributes][:unit_price]).to be_a(Float) # need to test?? special note in instructions for this datatype
+        expect(parsed_data[:data][0][:attributes][:merchant_id]).to eq(item1.merchant_id)
       end
     end
   end
@@ -87,4 +87,149 @@ RSpec.describe "Items API" do
       end
     end
   end
+
+  describe "#create"do
+    before do
+      @bond = Merchant.create(name: "James Bond", id: 007)
+    end
+
+    context "when successful" do
+      before do
+        item_params = ({
+            "name": "Turkish Cay",
+            "description": "From Karadeniz region, harvested my Hemshin locals.",
+            "unit_price": 100.99,
+            "merchant_id": @bond.id
+        })
+
+        headers = {"CONTENT_TYPE" => "application/json"}
+        post "/api/v1/items", headers: headers, params: JSON.generate(item: item_params)
+      end
+
+      let(:new_item) { Item.last }
+
+      it "creates a new item" do
+        expect(response).to be_successful
+        
+        parsed_data = JSON.parse(response.body, symbolize_names: true)
+
+        expect(parsed_data.size).to eq(1)
+
+        expect(parsed_data[:data].keys).to eq([:id, :type, :attributes])
+        expect(parsed_data[:data][:attributes].keys).to eq([:name, :description, :unit_price, :merchant_id])
+
+
+        expect(parsed_data[:data][:id]).to eq(new_item.id.to_s)
+        expect(parsed_data[:data][:type]).to eq('item')
+
+        expect(parsed_data[:data][:attributes][:name]).to eq(new_item.name)
+        expect(parsed_data[:data][:attributes][:description]).to eq(new_item.description)
+        expect(parsed_data[:data][:attributes][:unit_price]).to eq(new_item.unit_price)
+        expect(parsed_data[:data][:attributes][:merchant_id]).to eq(new_item.merchant_id)
+      end
+    end
+
+    context "when NOT successful" do
+      before do
+        @item_nil_name = ({
+            "name": nil,
+            "description": "It's tea!",
+            "unit_price": 100.99,
+            "merchant_id": @bond.id
+        })
+        @item_nil_desc = ({
+          "name": "Cay",
+          "description": nil,
+          "unit_price": 100.99,
+          "merchant_id": @bond.id
+        })
+        @item_nil_price = ({
+          "name": "Cay",
+          "description": "It's tea!",
+          "unit_price": nil,
+          "merchant_id": @bond.id
+        })
+        @item_nil_merch = ({
+          "name": "Cay",
+          "description": "It's tea!",
+          "unit_price": 100.99,
+          "merchant_id": nil
+        })
+
+        @item_non_num_price = ({
+          "name": "Cay",
+          "description": "It's tea!",
+          "unit_price": "ABC", # <- This should be a float/integer
+          "merchant_id": @bond.id
+        })
+        @item_non_num_merch = ({
+          "name": "Cay",
+          "description": "It's tea!",
+          "unit_price": 100.99,
+          "merchant_id": "ABC" # <- This should be a float/integer
+        })
+
+        @headers = {"CONTENT_TYPE" => "application/json"}
+      end
+      
+      xit "returns an error message when name is missing" do
+        post "/api/v1/items", headers: @headers, params: JSON.generate(item: @item_nil_name)
+        
+        expect(response).to have_http_status(404)
+
+        parsed_data = JSON.parse(response.body, symbolize_names: true)
+        # expect(parsed_data[:message]).to eq("??? whats the message ???")
+        # NOTE: After it comes back from create action it's now unit_price = 0.0 ????
+        # "{\"data\":{\"id\":null,\"type\":\"item\",\"attributes\":{\"name\":\"It's Cay\",\"description\":\"It's tea!\",\"unit_price\":0.0,\"merchant_id\":7}}}"
+      end
+
+      xit "returns an error message when description is missing" do
+        post "/api/v1/items", headers: @headers, params: JSON.generate(item: @item_nil_desc)
+        
+        expect(response).to have_http_status(404)
+
+        parsed_data = JSON.parse(response.body, symbolize_names: true)
+        # expect(parsed_data[:message]).to eq("??? whats the message ???")
+      end
+
+      xit "returns an error message when unit_price is missing" do
+        post "/api/v1/items", headers: @headers, params: JSON.generate(item: @item_nil_price)
+        
+        expect(response).to have_http_status(404)
+
+        parsed_data = JSON.parse(response.body, symbolize_names: true)
+        # expect(parsed_data[:message]).to eq("??? whats the message ???")
+      end
+
+      xit "returns an error message when merchant_id is missing" do
+        post "/api/v1/items", headers: @headers, params: JSON.generate(item: @item_nil_merch)
+        
+        expect(response).to have_http_status(404)
+
+        parsed_data = JSON.parse(response.body, symbolize_names: true)
+        # expect(parsed_data[:message]).to eq("??? whats the message ???")
+      end
+
+      xit "returns an error message when unit_price is NOT a number" do
+        post "/api/v1/items", headers: @headers, params: JSON.generate(item: @item_non_num_price)
+        
+        expect(response).to have_http_status(404)
+
+        parsed_data = JSON.parse(response.body, symbolize_names: true)
+        # expect(parsed_data[:message]).to eq("??? whats the message ???")
+      end
+
+      xit "returns an error message when merchant_id is NOT a number" do
+        post "/api/v1/items", headers: @headers, params: JSON.generate(item: @item_non_num_merch)
+        
+        expect(response).to have_http_status(404)
+
+        parsed_data = JSON.parse(response.body, symbolize_names: true)
+        # expect(parsed_data[:message]).to eq("??? whats the message ???")
+      end
+    end
+    # // TODO: sad path where attribute types are not correct
+    # // TODO: edge case where all attributes are missing
+  end
+
 end
