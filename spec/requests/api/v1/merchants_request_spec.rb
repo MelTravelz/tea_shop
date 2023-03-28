@@ -24,7 +24,7 @@ RSpec.describe "Merchants API" do
     end
   end
 
-  describe "#index" do
+  describe "#show" do
     context "when successful" do
       before do
         get "/api/v1/merchants/#{Merchant.first.id}"
@@ -36,7 +36,8 @@ RSpec.describe "Merchants API" do
         # expect(response).to have_http_status(200)
 
         parsed_data = JSON.parse(response.body, symbolize_names: true)
-        expect(parsed_data[:data].size).to eq(3)
+        # expect(parsed_data[:data].size).to eq(3) <- tests the wrong data (counts keys??)
+        expect(parsed_data[:data].keys).to eq([:id, :type, :attributes])
 
         expect(parsed_data[:data][:attributes].size).to eq(1)
 
