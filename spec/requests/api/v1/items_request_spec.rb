@@ -100,6 +100,7 @@ RSpec.describe "Items API" do
         # NOTE: <JSON.generate(item: item_params)> does NOT work here, makes this: {"item"=>{"name"=>nil, "description"=>nil, "unit_price"=>nil, "merchant_id"=>700}, "controller"=>"api/v1/items", "action"=>"create"} 
 
         expect(response).to be_successful
+        # expect(response).to have_http_status(201)
         
         parsed_data = JSON.parse(response.body, symbolize_names: true)
 
@@ -147,7 +148,7 @@ RSpec.describe "Items API" do
         expect(parsed_data[:errors]).to eq("Name can't be blank, Description can't be blank, Unit price can't be blank, Unit price is not a number")
       end
 
-      it "returns a 404 error message when merchant_id is nil" do
+      it "returns a 404 error message when merchant_id is nil/invalid" do
         item_params[:merchant_id] = nil
 
         headers = {"CONTENT_TYPE" => "application/json"}
@@ -156,6 +157,17 @@ RSpec.describe "Items API" do
         parsed_data = JSON.parse(response.body, symbolize_names: true)
         expect(response).to have_http_status(404)      
         expect(parsed_data[:message]).to eq("Couldn't find Merchant without an ID")
+      end
+
+      it "returns a 404 error message when merchant_id is invalid" do
+        item_params[:merchant_id] = 0
+
+        headers = {"CONTENT_TYPE" => "application/json"}
+        post "/api/v1/items", headers: headers, params: item_params, as: :json
+
+        parsed_data = JSON.parse(response.body, symbolize_names: true)
+        expect(response).to have_http_status(404)  
+        # expect(parsed_data[:message]).to eq("Couldn't find Item with 'id'=#{new_item.id}")
       end
     end
   end
@@ -217,33 +229,35 @@ RSpec.describe "Items API" do
   describe "destroy" do
     context "when successful" do
       it "can destroy an item" do
-       # This is an alternative to the current test: 
+       # This is an alternative to the current test? 
         # expect{ delete "/api/v1/items/#{item1.id}" }.to change(Item, :count).by(-1)
 
         expect(Item.count).to eq(5)
 
         delete "/api/v1/items/#{item_to_delete.id}"
 
-        expect(response).to be_successful
         expect(Item.count).to eq(4)
-        expect{ Item.find(item_to_delete.id) }.to raise_error(ActiveRecord::RecordNotFound)
-        expect{ Item.find(item_to_delete.id) }.to raise_error("Couldn't find Item with 'id'=#{item_to_delete.id}")
-        
-        ########### Testing the deleted object: 
-        
-        parsed_data = JSON.parse(response.body, symbolize_names: true)
-
-        expect(parsed_data[:id]).to eq(item_to_delete.id)
-        expect(parsed_data[:name]).to eq(item_to_delete.name)
-        expect(parsed_data[:description]).to eq(item_to_delete.description)
-        expect(parsed_data[:unit_price]).to eq(item_to_delete.unit_price)
-        expect(parsed_data[:merchant_id]).to eq(item_to_delete.merchant_id)
+        expect(response).to be_successful
+        expect(response).to have_http_status(204)
       end
     end
 
     context "when NOT successful" do
-      # sad path where attribute types are not correct
-      # edge case where all attributes are missing
+      it "returns a 404 error message when merchant_id is invalid" do
+        expect(Item.count).to eq(5)
+
+        item4 = Item.fourth
+        item4.id = 0
+
+        delete "/api/v1/items/#{item4.id}"
+
+        expect(Item.count).to eq(5)
+
+        parsed_data = JSON.parse(response.body, symbolize_names: true)
+        
+        expect(response).to have_http_status(404) 
+        expect(parsed_data[:message]).to eq("Couldn't find Item with 'id'=#{item4.id}")
+      end
     end
   end
 end
