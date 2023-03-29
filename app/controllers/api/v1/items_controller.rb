@@ -8,8 +8,8 @@ class Api::V1::ItemsController < ApplicationController
   end
 
   def create
-    merchant = Merchant.find(params[:item][:merchant_id])
-    new_item = Item.new(item_params)
+    merchant = Merchant.find(params[:merchant_id])
+    new_item = merchant.items.new(item_params)
     if new_item.save
       render json: ItemSerializer.new(new_item), status: 201
     else
@@ -31,5 +31,6 @@ class Api::V1::ItemsController < ApplicationController
   private
   def item_params
     params.require(:item).permit(:name, :description, :unit_price, :merchant_id)
+    # :merchant_id MUST be kept because postman wants ability to update the merchant_id so it MUST be passed here!
   end
 end

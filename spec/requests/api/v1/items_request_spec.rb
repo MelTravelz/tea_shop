@@ -59,7 +59,7 @@ RSpec.describe "Items API" do
     end
 
     context "when NOT successful" do
-      it "returns an error message when incorrect ID number is sent" do
+      it "returns a 404 error message when incorrect ID number is sent" do
         get "/api/v1/items/0"
 
         parsed_data = JSON.parse(response.body, symbolize_names: true)
@@ -68,7 +68,7 @@ RSpec.describe "Items API" do
         expect(parsed_data[:message]).to eq("Couldn't find Item with 'id'=0")
       end
 
-      it "returns an error message when non-integer is sent" do
+      it "returns an error message when non-integer ID is sent" do
         get "/api/v1/items/ABC"
 
         parsed_data = JSON.parse(response.body, symbolize_names: true)
@@ -96,7 +96,8 @@ RSpec.describe "Items API" do
     context "when successful" do
       it "creates a new item" do
         headers = {"CONTENT_TYPE" => "application/json"}
-        post "/api/v1/items", headers: headers, params: JSON.generate(item: item_params)
+        post "/api/v1/items", headers: headers, params: item_params, as: :json # makes: {"name"=>nil, "description"=>nil, "unit_price"=>nil, "merchant_id"=>700, "controller"=>"api/v1/items", "action"=>"create", "item"=>{"name"=>nil, "description"=>nil, "unit_price"=>nil, "merchant_id"=>700}}
+        # NOTE: <JSON.generate(item: item_params)> does NOT work here, makes this: {"item"=>{"name"=>nil, "description"=>nil, "unit_price"=>nil, "merchant_id"=>700}, "controller"=>"api/v1/items", "action"=>"create"} 
 
         expect(response).to be_successful
         
@@ -119,7 +120,7 @@ RSpec.describe "Items API" do
         item_params[:tea_field] = "Karadeniz"
 
         headers = {"CONTENT_TYPE" => "application/json"}
-        post "/api/v1/items", headers: headers, params: JSON.generate(item: item_params)
+        post "/api/v1/items", headers: headers, params: item_params, as: :json
 
         expect(response).to be_successful
         
@@ -136,22 +137,21 @@ RSpec.describe "Items API" do
       let(:name) { nil }
       let(:unit_price) { nil }
       let(:description) { nil }
-      let(:merchant_id) { bond.id }
 
-      it "returns error message when any attribute is nil or inccorect data type" do  
+      it "returns a 400 error message when any attribute is nil or inccorect data type is sent" do  
         headers = {"CONTENT_TYPE" => "application/json"}
-        post "/api/v1/items", headers: headers, params: JSON.generate(item: item_params)
+        post "/api/v1/items", headers: headers, params: item_params, as: :json
 
         parsed_data = JSON.parse(response.body, symbolize_names: true)       
         expect(response).to have_http_status(400)
         expect(parsed_data[:errors]).to eq("Name can't be blank, Description can't be blank, Unit price can't be blank, Unit price is not a number")
       end
 
-      it "returns an error message when merchant_id is nil" do
+      it "returns a 404 error message when merchant_id is nil" do
         item_params[:merchant_id] = nil
 
         headers = {"CONTENT_TYPE" => "application/json"}
-        post "/api/v1/items", headers: headers, params: JSON.generate(item: item_params)
+        post "/api/v1/items", headers: headers, params: item_params, as: :json
 
         parsed_data = JSON.parse(response.body, symbolize_names: true)
         expect(response).to have_http_status(404)      
@@ -161,11 +161,6 @@ RSpec.describe "Items API" do
   end
 
   describe "#update" do
-    # before do
-    #   # @carmen = Merchant.create(name: "Carmen SanDiego", id: 3)
-    #   @item_to_update = Item.second 
-    # end
-
     context "when successful" do
       before do
         @item_params = ({
@@ -182,7 +177,7 @@ RSpec.describe "Items API" do
         expect(item_to_update.description).to_not eq("From England, or something like that.")
         expect(item_to_update.unit_price).to_not eq(99.01)
 
-        put  "/api/v1/items/#{item_to_update.id}", headers: @headers, params: JSON.generate(item: @item_params)
+        put  "/api/v1/items/#{item_to_update.id}", headers: @headers, params: @item_params, as: :json
         @updated_item = Item.second # this was the item chose to update so we call it again here after the update
 
         expect(response).to be_successful
@@ -210,6 +205,12 @@ RSpec.describe "Items API" do
     end
 
     context "when NOT successful" do
+      # edge case, bad merchant id returns 400 or 404 
+      # sad path, bad integer id returns 404
+
+      # it "returns a 404 error message when non-integer ID is sent" do
+      # edge case, string id returns 404
+    # end
     end
   end
 
@@ -238,6 +239,11 @@ RSpec.describe "Items API" do
         expect(parsed_data[:unit_price]).to eq(item_to_delete.unit_price)
         expect(parsed_data[:merchant_id]).to eq(item_to_delete.merchant_id)
       end
+    end
+
+    context "when NOT successful" do
+      # sad path where attribute types are not correct
+      # edge case where all attributes are missing
     end
   end
 end
