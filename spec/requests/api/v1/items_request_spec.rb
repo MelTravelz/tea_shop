@@ -96,7 +96,8 @@ RSpec.describe "Items API" do
     context "when successful" do
       it "creates a new item" do
         headers = {"CONTENT_TYPE" => "application/json"}
-        post "/api/v1/items", headers: headers, params: item_params, as: :json # makes: {"name"=>nil, "description"=>nil, "unit_price"=>nil, "merchant_id"=>700, "controller"=>"api/v1/items", "action"=>"create", "item"=>{"name"=>nil, "description"=>nil, "unit_price"=>nil, "merchant_id"=>700}}
+        post "/api/v1/items", headers: headers, params: JSON.generate(item_params)
+        # post "/api/v1/items", headers: headers, params: item_params, as: :json # makes: {"name"=>nil, "description"=>nil, "unit_price"=>nil, "merchant_id"=>700, "controller"=>"api/v1/items", "action"=>"create", "item"=>{"name"=>nil, "description"=>nil, "unit_price"=>nil, "merchant_id"=>700}}
         # NOTE: <JSON.generate(item: item_params)> does NOT work here, makes this: {"item"=>{"name"=>nil, "description"=>nil, "unit_price"=>nil, "merchant_id"=>700}, "controller"=>"api/v1/items", "action"=>"create"} 
 
         expect(response).to be_successful
@@ -167,7 +168,7 @@ RSpec.describe "Items API" do
 
         parsed_data = JSON.parse(response.body, symbolize_names: true)
         expect(response).to have_http_status(404)  
-        # expect(parsed_data[:message]).to eq("Couldn't find Item with 'id'=#{new_item.id}")
+        expect(parsed_data[:message]).to eq("Couldn't find Merchant with 'id'=0")
       end
     end
   end
@@ -229,8 +230,8 @@ RSpec.describe "Items API" do
   describe "destroy" do
     context "when successful" do
       it "can destroy an item" do
-       # This is an alternative to the current test? 
-        # expect{ delete "/api/v1/items/#{item1.id}" }.to change(Item, :count).by(-1)
+      # This is an alternative to the current test? 
+      # expect{ delete "/api/v1/items/#{item1.id}" }.to change(Item, :count).by(-1)
 
         expect(Item.count).to eq(5)
 
@@ -253,9 +254,10 @@ RSpec.describe "Items API" do
 
         expect(Item.count).to eq(5)
 
+        expect(response).to have_http_status(404) 
+
         parsed_data = JSON.parse(response.body, symbolize_names: true)
         
-        expect(response).to have_http_status(404) 
         expect(parsed_data[:message]).to eq("Couldn't find Item with 'id'=#{item4.id}")
       end
     end
