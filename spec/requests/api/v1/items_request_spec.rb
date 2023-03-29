@@ -5,7 +5,8 @@ RSpec.describe "Items API" do
     create_list(:item, 5)
   end
   let(:item1) { Item.first }
-  let(:item_to_delete) { Item.second }
+  let(:item_to_update) { Item.second }
+  let(:item_to_delete) { Item.third }
 
   describe "#index" do
     before do
@@ -21,12 +22,12 @@ RSpec.describe "Items API" do
         expect(parsed_data[:data].size).to eq(5)
         expect(parsed_data[:data]).to be_an(Array)
         expect(parsed_data[:data][0].keys).to eq([:id, :type, :attributes])
-
         expect(parsed_data[:data][0][:attributes].keys).to eq([:name, :description, :unit_price, :merchant_id])
+        
         expect(parsed_data[:data][0][:attributes][:name]).to eq(item1.name)
         expect(parsed_data[:data][0][:attributes][:description]).to eq(item1.description)
         expect(parsed_data[:data][0][:attributes][:unit_price]).to eq(item1.unit_price)
-        expect(parsed_data[:data][0][:attributes][:unit_price]).to be_a(Float) # need to test?? special note in instructions for this datatype
+        expect(parsed_data[:data][0][:attributes][:unit_price]).to be_a(Float)
         expect(parsed_data[:data][0][:attributes][:merchant_id]).to eq(item1.merchant_id)
       end
     end
@@ -44,10 +45,8 @@ RSpec.describe "Items API" do
         parsed_data = JSON.parse(response.body, symbolize_names: true)
 
         expect(parsed_data.size).to eq(1)
-
         expect(parsed_data[:data].keys).to eq([:id, :type, :attributes])
         expect(parsed_data[:data][:attributes].keys).to eq([:name, :description, :unit_price, :merchant_id])
-
 
         expect(parsed_data[:data][:id]).to eq(item1.id.to_s)
         expect(parsed_data[:data][:type]).to eq('item')
@@ -69,15 +68,6 @@ RSpec.describe "Items API" do
         expect(parsed_data[:message]).to eq("Couldn't find Item with 'id'=0")
       end
 
-      it "returns an error message when incorrect ID number is sent" do
-        get "/api/v1/items/0"
-
-        parsed_data = JSON.parse(response.body, symbolize_names: true)
-
-        expect(response).to have_http_status(404)
-        expect(parsed_data[:message]).to eq("Couldn't find Item with 'id'=0")
-      end
-
       it "returns an error message when non-integer is sent" do
         get "/api/v1/items/ABC"
 
@@ -90,167 +80,137 @@ RSpec.describe "Items API" do
   end
 
   describe "#create"do
-    before do
-      @bond = Merchant.create(name: "James Bond", id: 700)
-    end
+    let(:bond) { Merchant.create(name: "James Bond", id: 700) }
+    let(:new_item) { Item.last }
+    let(:name) { "Turkish Cay" }
+    let(:description) { "Harvested by Hemshin locals." }
+    let(:unit_price) { 100.99 }
+
+    let(:item_params) {{
+      "name": name,
+      "description": description,
+      "unit_price": unit_price,
+      "merchant_id": bond.id,
+    }}
 
     context "when successful" do
-      before do
-        item_params = ({
-            "name": "Turkish Cay",
-            "description": "From Karadeniz region, harvested my Hemshin locals.",
-            "unit_price": 100.99,
-            "merchant_id": @bond.id
-        })
-
+      it "creates a new item" do
         headers = {"CONTENT_TYPE" => "application/json"}
         post "/api/v1/items", headers: headers, params: JSON.generate(item: item_params)
 
-        @new_item = Item.last
-      end
-
-      # let(:new_item) { Item.last }
-
-      it "creates a new item" do
         expect(response).to be_successful
-        # expect(response).to have_http_status(201) # Is this needed?
         
         parsed_data = JSON.parse(response.body, symbolize_names: true)
 
         expect(parsed_data.size).to eq(1)
-
-        expect(parsed_data[:data].size).to eq(3)
         expect(parsed_data[:data].keys).to eq([:id, :type, :attributes])
-
-        expect(parsed_data[:data][:attributes].size).to eq(4)
         expect(parsed_data[:data][:attributes].keys).to eq([:name, :description, :unit_price, :merchant_id])
 
-        expect(parsed_data[:data][:id]).to eq(@new_item.id.to_s)
+        expect(parsed_data[:data][:id]).to eq(new_item.id.to_s)
         expect(parsed_data[:data][:type]).to eq('item')
 
-        expect(parsed_data[:data][:attributes][:name]).to eq(@new_item.name)
-        expect(parsed_data[:data][:attributes][:description]).to eq(@new_item.description)
-        expect(parsed_data[:data][:attributes][:unit_price]).to eq(@new_item.unit_price)
-        expect(parsed_data[:data][:attributes][:merchant_id]).to eq(@new_item.merchant_id)
+        expect(parsed_data[:data][:attributes][:name]).to eq(new_item.name)
+        expect(parsed_data[:data][:attributes][:description]).to eq(new_item.description)
+        expect(parsed_data[:data][:attributes][:unit_price]).to eq(new_item.unit_price)
+        expect(parsed_data[:data][:attributes][:merchant_id]).to eq(new_item.merchant_id)
+      end
+
+      it "ignores unallowable attributes & still creates a new item" do
+        item_params[:tea_field] = "Karadeniz"
+
+        headers = {"CONTENT_TYPE" => "application/json"}
+        post "/api/v1/items", headers: headers, params: JSON.generate(item: item_params)
+
+        expect(response).to be_successful
+        
+        parsed_data = JSON.parse(response.body, symbolize_names: true)
+
+        expect(parsed_data.size).to eq(1)
+        expect(parsed_data[:data][:attributes].keys).to eq([:name, :description, :unit_price, :merchant_id])
+        expect(parsed_data[:data][:attributes].keys).to_not eq([:name, :description, :unit_price, :merchant_id, :tea_field])
       end
     end
 
     context "when NOT successful" do
-      before do
-        @item_nil_name = ({
-            "name": nil,
-            "description": "It's tea!",
-            "unit_price": 100.99,
-            "merchant_id": @bond.id
-        })
-        @item_nil_desc = ({
-          "name": "Cay",
-          "description": nil,
-          "unit_price": 100.99,
-          "merchant_id": @bond.id
-        })
-        @item_nil_price = ({
-          "name": "Cay",
-          "description": "It's tea!",
-          "unit_price": nil,
-          "merchant_id": @bond.id
-        })
-        @item_nil_merch = ({
-          "name": "Cay",
-          "description": "It's tea!",
-          "unit_price": 100.99,
-          "merchant_id": nil
-        })
+      let(:new_item) { Item.last }
+      let(:name) { nil }
+      let(:unit_price) { nil }
+      let(:description) { nil }
+      let(:merchant_id) { bond.id }
 
-        @item_non_num_price = ({
-          "name": "Cay",
-          "description": "It's tea!",
-          "unit_price": "ABC", # <- This should be a float/integer
-          "merchant_id": @bond.id
-        })
-        @item_non_num_merch = ({
-          "name": "Cay",
-          "description": "It's tea!",
-          "unit_price": 100.99,
-          "merchant_id": "ABC" # <- This should be a float/integer
-        })
+      it "returns error message when any attribute is nil or inccorect data type" do  
+        headers = {"CONTENT_TYPE" => "application/json"}
+        post "/api/v1/items", headers: headers, params: JSON.generate(item: item_params)
 
-        @item_missing_attr = ({
-          "description": "It's tea!",
-          "unit_price": 100.99,
-          "merchant_id": @bond.id
-        })
-
-        @headers = {"CONTENT_TYPE" => "application/json"}
-      end
-      
-      xit "returns an error message when name is missing" do
-        post "/api/v1/items", headers: @headers, params: JSON.generate(item: @item_nil_name)
-        
-        expect(response).to have_http_status(404)
-
-        parsed_data = JSON.parse(response.body, symbolize_names: true)
-        # expect(parsed_data[:message]).to eq("??? whats the message ???")
-        # NOTE: After it comes back from create action it's now unit_price = 0.0 ????
-        # "{\"data\":{\"id\":null,\"type\":\"item\",\"attributes\":{\"name\":\"It's Cay\",\"description\":\"It's tea!\",\"unit_price\":0.0,\"merchant_id\":7}}}"
-      end
-
-      xit "returns an error message when description is missing" do
-        post "/api/v1/items", headers: @headers, params: JSON.generate(item: @item_nil_desc)
-        
-        expect(response).to have_http_status(404)
-
-        parsed_data = JSON.parse(response.body, symbolize_names: true)
-        # expect(parsed_data[:message]).to eq("??? whats the message ???")
-      end
-
-      xit "returns an error message when unit_price is missing" do
-        post "/api/v1/items", headers: @headers, params: JSON.generate(item: @item_nil_price)
-        
-        expect(response).to have_http_status(404)
-
-        parsed_data = JSON.parse(response.body, symbolize_names: true)
-        # expect(parsed_data[:message]).to eq("??? whats the message ???")
-      end
-
-      xit "returns an error message when merchant_id is missing" do
-        post "/api/v1/items", headers: @headers, params: JSON.generate(item: @item_nil_merch)
-        
-        expect(response).to have_http_status(404)
-
-        parsed_data = JSON.parse(response.body, symbolize_names: true)
-        # expect(parsed_data[:message]).to eq("??? whats the message ???")
-      end
-
-      xit "returns an error message when unit_price is NOT a number" do
-        post "/api/v1/items", headers: @headers, params: JSON.generate(item: @item_non_num_price)
-        
-        expect(response).to have_http_status(404)
-
-        parsed_data = JSON.parse(response.body, symbolize_names: true)
-        # expect(parsed_data[:message]).to eq("??? whats the message ???")
-      end
-
-      xit "returns an error message when merchant_id is NOT a number" do
-        post "/api/v1/items", headers: @headers, params: JSON.generate(item: @item_non_num_merch)
-        
-        expect(response).to have_http_status(404)
-
-        parsed_data = JSON.parse(response.body, symbolize_names: true)
-        # expect(parsed_data[:message]).to eq("??? whats the message ???")
-      end
-
-      it "returns an error message when an attribute is missing" do
-        post "/api/v1/items", headers: @headers, params: JSON.generate(item: @item_missing_attr)
+        parsed_data = JSON.parse(response.body, symbolize_names: true)       
         expect(response).to have_http_status(400)
-        # require 'pry'; binding.pry
+        expect(parsed_data[:errors]).to eq("Name can't be blank, Description can't be blank, Unit price can't be blank, Unit price is not a number")
+      end
+
+      it "returns an error message when merchant_id is nil" do
+        item_params[:merchant_id] = nil
+
+        headers = {"CONTENT_TYPE" => "application/json"}
+        post "/api/v1/items", headers: headers, params: JSON.generate(item: item_params)
 
         parsed_data = JSON.parse(response.body, symbolize_names: true)
-        expect(parsed_data[:message]).to eq("Validation failed: Name can't be blank")
+        expect(response).to have_http_status(404)      
+        expect(parsed_data[:message]).to eq("Couldn't find Merchant without an ID")
       end
     end
-    # // TODO: sad path where attribute types are not correct
-    # // TODO: edge case where all attributes are missing
+  end
+
+  describe "#update" do
+    # before do
+    #   # @carmen = Merchant.create(name: "Carmen SanDiego", id: 3)
+    #   @item_to_update = Item.second 
+    # end
+
+    context "when successful" do
+      before do
+        @item_params = ({
+            "name": "English Earl Grey Tea",
+            "description": "From England, or something like that.",
+            "unit_price": 99.01,
+            "merchant_id": item_to_update.merchant_id
+        })
+        @headers = {"CONTENT_TYPE" => "application/json"}
+      end 
+
+      it "can update an item" do
+        expect(item_to_update.name).to_not eq("English Earl Grey Tea")
+        expect(item_to_update.description).to_not eq("From England, or something like that.")
+        expect(item_to_update.unit_price).to_not eq(99.01)
+
+        put  "/api/v1/items/#{item_to_update.id}", headers: @headers, params: JSON.generate(item: @item_params)
+        @updated_item = Item.second # this was the item chose to update so we call it again here after the update
+
+        expect(response).to be_successful
+
+        parsed_data = JSON.parse(response.body, symbolize_names: true)
+
+        expect(parsed_data.size).to eq(1)
+        expect(parsed_data[:data].keys).to eq([:id, :type, :attributes])
+        expect(parsed_data[:data][:attributes].keys).to eq([:name, :description, :unit_price, :merchant_id])
+
+        expect(parsed_data[:data][:id]).to eq(@updated_item.id.to_s)
+        expect(parsed_data[:data][:type]).to eq('item')
+
+        expect(parsed_data[:data][:attributes][:name]).to eq(@updated_item.name)
+        expect(parsed_data[:data][:attributes][:description]).to eq(@updated_item.description)
+        expect(parsed_data[:data][:attributes][:unit_price]).to eq(@updated_item.unit_price)
+
+        expect(parsed_data[:data][:attributes][:merchant_id]).to eq(@updated_item.merchant_id)
+        expect(parsed_data[:data][:attributes][:merchant_id]).to eq(item_to_update.merchant_id)
+
+        expect(parsed_data[:data][:attributes][:name]).to_not eq(item_to_update.name)
+        expect(parsed_data[:data][:attributes][:description]).to_not eq(item_to_update.description)
+        expect(parsed_data[:data][:attributes][:unit_price]).to_not eq(item_to_update.unit_price)
+      end
+    end
+
+    context "when NOT successful" do
+    end
   end
 
   describe "destroy" do
