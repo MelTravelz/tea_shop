@@ -4,9 +4,19 @@ RSpec.describe "Items API" do
   before do
     create_list(:item, 5)
   end
+  let(:bond) { Merchant.create(name: "James Bond", id: 700) }
+
   let(:item1) { Item.first }
   let(:item_to_update) { Item.second }
   let(:item_to_delete) { Item.third }
+  let(:new_item) { Item.last }
+
+  let(:item_params) {{
+    "name": name,
+    "description": description,
+    "unit_price": unit_price,
+    "merchant_id": merchant_id,
+  }}
 
   describe "#index" do
     before do
@@ -80,18 +90,10 @@ RSpec.describe "Items API" do
   end
 
   describe "#create"do
-    let(:bond) { Merchant.create(name: "James Bond", id: 700) }
-    let(:new_item) { Item.last }
     let(:name) { "Turkish Cay" }
     let(:description) { "Harvested by Hemshin locals." }
     let(:unit_price) { 100.99 }
-
-    let(:item_params) {{
-      "name": name,
-      "description": description,
-      "unit_price": unit_price,
-      "merchant_id": bond.id,
-    }}
+    let(:merchant_id) { bond.id }
 
     context "when successful" do
       it "creates a new item" do
@@ -135,7 +137,6 @@ RSpec.describe "Items API" do
     end
 
     context "when NOT successful" do
-      let(:new_item) { Item.last }
       let(:name) { nil }
       let(:unit_price) { nil }
       let(:description) { nil }
@@ -174,24 +175,21 @@ RSpec.describe "Items API" do
   end
 
   describe "#update" do
+    let(:name) { "Turkish Cay" }
+    let(:description) { "Harvested by Hemshin locals." }
+    let(:unit_price) { 100.99 }
+    let(:merchant_id) { bond.id }
+    
     context "when successful" do
-      before do
-        @item_params = ({
-            "name": "English Earl Grey Tea",
-            "description": "From England, or something like that.",
-            "unit_price": 99.01,
-            "merchant_id": item_to_update.merchant_id
-        })
-        @headers = {"CONTENT_TYPE" => "application/json"}
-      end 
-
       it "can update an item" do
-        expect(item_to_update.name).to_not eq("English Earl Grey Tea")
-        expect(item_to_update.description).to_not eq("From England, or something like that.")
-        expect(item_to_update.unit_price).to_not eq(99.01)
+        expect(item_to_update.name).to_not eq("Turkish Cay")
+        expect(item_to_update.description).to_not eq("Harvested by Hemshin locals.")
+        expect(item_to_update.unit_price).to_not eq(100.99)
+        expect(item_to_update.merchant_id).to_not eq(bond.id)
 
-        put  "/api/v1/items/#{item_to_update.id}", headers: @headers, params: @item_params, as: :json
-        @updated_item = Item.second # this was the item chose to update so we call it again here after the update
+        headers = {"CONTENT_TYPE" => "application/json"}
+        put  "/api/v1/items/#{item_to_update.id}", headers: headers, params: item_params, as: :json
+        updated_item = Item.second # this was the item chose to update so we call it again here after the update
 
         expect(response).to be_successful
 
@@ -201,29 +199,84 @@ RSpec.describe "Items API" do
         expect(parsed_data[:data].keys).to eq([:id, :type, :attributes])
         expect(parsed_data[:data][:attributes].keys).to eq([:name, :description, :unit_price, :merchant_id])
 
-        expect(parsed_data[:data][:id]).to eq(@updated_item.id.to_s)
+        expect(parsed_data[:data][:id]).to eq(updated_item.id.to_s)
         expect(parsed_data[:data][:type]).to eq('item')
 
-        expect(parsed_data[:data][:attributes][:name]).to eq(@updated_item.name)
-        expect(parsed_data[:data][:attributes][:description]).to eq(@updated_item.description)
-        expect(parsed_data[:data][:attributes][:unit_price]).to eq(@updated_item.unit_price)
+        expect(parsed_data[:data][:attributes][:name]).to eq(updated_item.name)
+        expect(parsed_data[:data][:attributes][:description]).to eq(updated_item.description)
+        expect(parsed_data[:data][:attributes][:unit_price]).to eq(updated_item.unit_price)
 
-        expect(parsed_data[:data][:attributes][:merchant_id]).to eq(@updated_item.merchant_id)
-        expect(parsed_data[:data][:attributes][:merchant_id]).to eq(item_to_update.merchant_id)
+        expect(parsed_data[:data][:attributes][:merchant_id]).to eq(updated_item.merchant_id)
 
+        expect(parsed_data[:data][:attributes][:merchant_id]).to_not eq(item_to_update.merchant_id)
         expect(parsed_data[:data][:attributes][:name]).to_not eq(item_to_update.name)
         expect(parsed_data[:data][:attributes][:description]).to_not eq(item_to_update.description)
         expect(parsed_data[:data][:attributes][:unit_price]).to_not eq(item_to_update.unit_price)
       end
+
+      it "can update only one attribute of an item" do
+        item_params = ({
+          "name": "English Earl Grey"
+        })
+
+        expect(item_to_update.name).to_not eq("English Earl Grey")
+
+        headers = {"CONTENT_TYPE" => "application/json"}
+        put  "/api/v1/items/#{item_to_update.id}", headers: headers, params: item_params, as: :json
+        updated_item = Item.second # this was the item chose to update so we call it again here after the update
+
+        expect(response).to be_successful
+
+        parsed_data = JSON.parse(response.body, symbolize_names: true)
+
+        expect(parsed_data.size).to eq(1)
+        expect(parsed_data[:data].keys).to eq([:id, :type, :attributes])
+        expect(parsed_data[:data][:attributes].keys).to eq([:name, :description, :unit_price, :merchant_id])
+
+        expect(parsed_data[:data][:id]).to eq(updated_item.id.to_s)
+        expect(parsed_data[:data][:type]).to eq('item')
+
+        expect(parsed_data[:data][:attributes][:name]).to eq(updated_item.name)
+        expect(parsed_data[:data][:attributes][:name]).to_not eq(item_to_update.name)
+        
+        expect(parsed_data[:data][:attributes][:description]).to eq(item_to_update.description)
+        expect(parsed_data[:data][:attributes][:unit_price]).to eq(item_to_update.unit_price)
+        expect(parsed_data[:data][:attributes][:merchant_id]).to eq(item_to_update.merchant_id)
+      end
     end
 
     context "when NOT successful" do
-      # edge case, bad merchant id returns 400 or 404 
-      # sad path, bad integer id returns 404
+      it "returns a 400 error message when merchant_id is nil/invalid" do
+        item_params[:merchant_id] = nil
 
-      # it "returns a 404 error message when non-integer ID is sent" do
-      # edge case, string id returns 404
-    # end
+        expect(item_to_update.name).to_not eq("Turkish Cay")
+        expect(item_to_update.description).to_not eq("Harvested by Hemshin locals.")
+        expect(item_to_update.unit_price).to_not eq(100.99)
+        expect(item_to_update.merchant_id).to_not eq(bond.id)
+        
+        headers = {"CONTENT_TYPE" => "application/json"}
+        put  "/api/v1/items/#{item_to_update.id}", headers: headers, params: item_params, as: :json
+        parsed_data = JSON.parse(response.body, symbolize_names: true)
+
+        expect(response).to have_http_status(400)      
+        expect(parsed_data[:errors]).to eq("Merchant must exist")
+      end
+
+      it "returns a 404 error message when merchant_id is invalid" do
+        item_params[:merchant_id] = 0
+
+        expect(item_to_update.name).to_not eq("Turkish Cay")
+        expect(item_to_update.description).to_not eq("Harvested by Hemshin locals.")
+        expect(item_to_update.unit_price).to_not eq(100.99)
+        expect(item_to_update.merchant_id).to_not eq(bond.id)
+        
+        headers = {"CONTENT_TYPE" => "application/json"}
+        put  "/api/v1/items/#{item_to_update.id}", headers: headers, params: item_params, as: :json
+        parsed_data = JSON.parse(response.body, symbolize_names: true)
+
+        expect(response).to have_http_status(400)      
+        expect(parsed_data[:errors]).to eq("Merchant must exist")
+      end
     end
   end
 
