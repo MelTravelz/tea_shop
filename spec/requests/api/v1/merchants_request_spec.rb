@@ -34,12 +34,14 @@ RSpec.describe "Merchants API" do
 
       it "returns one merchant" do
         expect(response).to be_successful
-        # # expect(response).to have_http_status(:success)
+        # expect(response).to have_http_status(:success)
         # expect(response).to have_http_status(200)
 
         parsed_data = JSON.parse(response.body, symbolize_names: true)
-        # expect(parsed_data[:data].size).to eq(3) <- tests the wrong data (counts keys??)
+
+        expect(parsed_data.size).to eq(1)
         expect(parsed_data[:data].keys).to eq([:id, :type, :attributes])
+        # expect(parsed_data[:data].size).to eq(3) <- test above is a little more specific
 
         expect(parsed_data[:data][:attributes].size).to eq(1)
 
