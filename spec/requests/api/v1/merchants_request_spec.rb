@@ -1,6 +1,6 @@
 require 'rails_helper'
 
-RSpec.describe "Merchants API" do
+RSpec.describe "Merchants API", type: :request do
   before do
     create_list(:merchant, 4)
   end
@@ -42,7 +42,6 @@ RSpec.describe "Merchants API" do
         expect(parsed_data.size).to eq(1)
         expect(parsed_data[:data].keys).to eq([:id, :type, :attributes])
         # expect(parsed_data[:data].size).to eq(3) <- test above is a little more specific
-
         expect(parsed_data[:data][:attributes].size).to eq(1)
 
         expect(parsed_data[:data][:id]).to eq(merchant1.id.to_s)
