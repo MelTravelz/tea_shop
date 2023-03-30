@@ -30,7 +30,34 @@ RSpec.describe "Items Merchant API" do
     end
 
     context "when NOT successful" do
-      it "returns a 404 if merchant is not found" do
+      it "returns a 404 error message when incorrect ID number is sent" do
+        get "/api/v1/items/0/merchant"
+
+        parsed_data = JSON.parse(response.body, symbolize_names: true)
+
+        expect(response).to have_http_status(404)
+        expect(parsed_data[:message]).to eq("Couldn't find Item with 'id'=0")
+      end
+
+      it "returns a 404 error message when non-integer is sent" do
+        get "/api/v1/items/ABC/merchant"
+
+        parsed_data = JSON.parse(response.body, symbolize_names: true)
+
+        expect(response).to have_http_status(404)
+        expect(parsed_data[:message]).to eq("Couldn't find Item with 'id'=ABC")
+      end
+
+      xit "returns a 404 if merchant is not found" do 
+        # how to make merchant "not found" ??
+
+        get "/api/v1/items/#{item1.id}/merchant"
+
+        expect(response).to have_http_status(404) 
+
+        parsed_data = JSON.parse(response.body, symbolize_names: true)
+        
+        expect(parsed_data[:message]).to eq("Couldn't find Merchant with 'id'=0")
       end
     end
   end
