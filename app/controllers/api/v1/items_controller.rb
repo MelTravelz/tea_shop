@@ -27,8 +27,9 @@ class Api::V1::ItemsController < ApplicationController
   end
 
   def destroy
-    # render json: Item.destroy(params[:id]), status: 204
-    Item.destroy(params[:id])
+    item = Item.find(params[:id])
+    item.destroy_association
+    item.destroy
   end
 
   private
