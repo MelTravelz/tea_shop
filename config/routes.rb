@@ -8,6 +8,7 @@ Rails.application.routes.draw do
     namespace :v1 do
       get '/merchants', to: 'merchants#index'
       get '/merchants/:id', to: 'merchants#show'
+      get '/merchants/:id/items', to: 'merchants/items#index'
 
       get '/items', to: 'items#index'
       post '/items', to: 'items#create'
@@ -17,5 +18,4 @@ Rails.application.routes.draw do
       get '/items/:id/merchant', to: 'items/merchants#show'
     end
   end
-
 end
