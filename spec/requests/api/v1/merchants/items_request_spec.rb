@@ -1,6 +1,6 @@
 require 'rails_helper'
 
-RSpec.describe "Merchant Items API" do
+RSpec.describe "Merchant Items API", type: :request do
   describe "#index" do
     context "when successful" do
       it "returns all items" do

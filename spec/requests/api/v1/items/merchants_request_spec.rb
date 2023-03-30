@@ -1,6 +1,6 @@
 require 'rails_helper'
 
-RSpec.describe "Items Merchant API" do
+RSpec.describe "Items Merchant API", type: :request do
   describe "#show" do
     before do
       create_list(:item, 2)
