@@ -10,10 +10,6 @@ RSpec.describe "Merchants Search API", type: :request do
     end
 
     context "when successful" do
-        # return a single object, if found
-        # return the first object in the database in case-insensitive alphabetical order if multiple matches are found
-        # allow the user to specify a ‘name’ query parameter
-
       it "returns the first (case insensitive) merchant that matches a search term" do
         get "/api/v1/merchants/find?name=car"
         
