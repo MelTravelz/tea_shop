@@ -18,21 +18,13 @@ RSpec.describe Merchant, type: :model do
     end
 
     describe "::find_merchant_by_term" do
-      it "returns first, alphabetical match when search term is found" do
-      expect(Merchant.find_merchant_by_term("car")).to eq(@carmen)
+      it "returns first, case-insensitive, alphabetical match when search term is found" do
+        expect(Merchant.find_merchant_by_term("cAr")).to eq(@carmen)
 
-      expect(Merchant.find_merchant_by_term("car")).to_not eq(@scarlet)
-      expect(Merchant.find_merchant_by_term("car")).to_not eq(@oscar)
-      expect(Merchant.find_merchant_by_term("car")).to_not eq(@planet)
-      end
-
-      it "is case insensitive" do
-        expect(Merchant.find_merchant_by_term("Car")).to eq(@carmen)
-  
         expect(Merchant.find_merchant_by_term("car")).to_not eq(@scarlet)
         expect(Merchant.find_merchant_by_term("car")).to_not eq(@oscar)
         expect(Merchant.find_merchant_by_term("car")).to_not eq(@planet)
-        end
+      end
 
       it "returns nil when search term is NOT found" do
         expect(Merchant.find_merchant_by_term("xyz")).to eq(nil)

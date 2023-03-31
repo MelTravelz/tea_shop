@@ -13,7 +13,6 @@ class Api::V1::ItemsController < ApplicationController
     if new_item.save
       render json: ItemSerializer.new(new_item), status: 201
     else
-      # does this get hit in the application controller?
       render json: { errors: new_item.errors.full_messages.join(', ') }, status: :bad_request
     end
   end
@@ -23,7 +22,6 @@ class Api::V1::ItemsController < ApplicationController
     if update_item.update(item_params)
       render json: ItemSerializer.new(update_item)
     else
-      # does this get hit in the application controller? 
       render json: { errors: update_item.errors.full_messages.join(', ') }, status: :bad_request
     end
   end

@@ -4,7 +4,7 @@ class Api::V1::Merchants::SearchController < ApplicationController
     if merchant != nil
       render json: MerchantSerializer.new(merchant)
     else
-      render json: { "data": {} }, status: 200
+      render json: { "data": {} }
     end
   end
 end

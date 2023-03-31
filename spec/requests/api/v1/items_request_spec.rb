@@ -100,11 +100,8 @@ RSpec.describe "Items API", type: :request do
       it "creates a new item" do
         headers = {"CONTENT_TYPE" => "application/json"}
         post "/api/v1/items", headers: headers, params: JSON.generate(item_params)
-        # post "/api/v1/items", headers: headers, params: item_params, as: :json # makes: {"name"=>nil, "description"=>nil, "unit_price"=>nil, "merchant_id"=>700, "controller"=>"api/v1/items", "action"=>"create", "item"=>{"name"=>nil, "description"=>nil, "unit_price"=>nil, "merchant_id"=>700}}
-        # NOTE: <JSON.generate(item: item_params)> does NOT work here, makes this: {"item"=>{"name"=>nil, "description"=>nil, "unit_price"=>nil, "merchant_id"=>700}, "controller"=>"api/v1/items", "action"=>"create"} 
 
         expect(response).to be_successful
-        # expect(response).to have_http_status(201)
         
         parsed_data = JSON.parse(response.body, symbolize_names: true)
 
@@ -190,7 +187,7 @@ RSpec.describe "Items API", type: :request do
 
         headers = {"CONTENT_TYPE" => "application/json"}
         put  "/api/v1/items/#{item_to_update.id}", headers: headers, params: item_params, as: :json
-        updated_item = Item.second # this was the item chose to update so we call it again here after the update
+        updated_item = Item.second
 
         expect(response).to be_successful
 
@@ -224,7 +221,7 @@ RSpec.describe "Items API", type: :request do
 
         headers = {"CONTENT_TYPE" => "application/json"}
         put  "/api/v1/items/#{item_to_update.id}", headers: headers, params: item_params, as: :json
-        updated_item = Item.second # this was the item chose to update so we call it again here after the update
+        updated_item = Item.second 
 
         expect(response).to be_successful
 
@@ -247,21 +244,6 @@ RSpec.describe "Items API", type: :request do
     end
 
     context "when NOT successful" do
-      # let(:name) { nil }
-      # let(:unit_price) { nil }
-      # let(:description) { nil }
-
-      # Create a sad path test for inaccurate data type / missing info!!
-
-      # it "returns a 400 error message when any attribute is nil or inccorect data type is sent" do  
-      #   headers = {"CONTENT_TYPE" => "application/json"}
-      #   post "/api/v1/items", headers: headers, params: item_params, as: :json
-
-      #   parsed_data = JSON.parse(response.body, symbolize_names: true)       
-      #   expect(response).to have_http_status(400)
-      #   expect(parsed_data[:errors]).to eq("Name can't be blank, Description can't be blank, Unit price can't be blank, Unit price is not a number")
-      # end
-
       it "returns a 400 error message when merchant_id is nil/invalid" do
         item_params[:merchant_id] = nil
 
@@ -299,9 +281,6 @@ RSpec.describe "Items API", type: :request do
   describe "destroy" do
     context "when successful" do
       it "can destroy an item" do
-      # This is an alternative to the current test? 
-      # expect{ delete "/api/v1/items/#{item1.id}" }.to change(Item, :count).by(-1)
-
         expect(Item.count).to eq(5)
 
         delete "/api/v1/items/#{item_to_delete.id}"
