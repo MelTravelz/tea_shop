@@ -49,6 +49,4 @@ RSpec.describe "Items Merchant API", type: :request do
       end
     end
   end
-    # let(:carmen) { Merchant.create(name: "Carmen SanDiego", id: 55) }
-    # let(:chai) { Item.create(name: "Vanilla Chai", description: "So Delish!", unit_price: 99.50, merchant_id: carmen.id ) }
 end
